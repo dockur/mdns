@@ -4,13 +4,13 @@ set -Eeuo pipefail
 : "${INTERFACES:=""}"
 : "${LOG_LEVEL:="info"}"
 
-echo "mDNS Reflector v$(</etc/version)..."
-
 if [ "$#" -gt 0 ]; then
   exec "$@"
 fi
 
-INTERFACES=$(echo "$INTERFACES" | tr ',' ' ' | xargs)
+echo "mDNS Reflector v$(</etc/version)..."
+
+INTERFACES=$(printf '%s\n' "$INTERFACES" | tr ',' ' ' | xargs)
 
 if [ -z "$INTERFACES" ]; then
   echo "Error: set INTERFACES to a space-separated list of interfaces." >&2
@@ -75,7 +75,7 @@ has_ipv6() {
       [ "$(cat "/proc/sys/net/ipv6/conf/$iface/disable_ipv6")" = "0" ] || continue
     fi
 
-    if grep -qw "$iface" /proc/net/if_inet6; then
+    if awk -v iface="$iface" '$6 == iface { found = 1 } END { exit !found }' /proc/net/if_inet6; then
       count=$((count + 1))
     fi
 
