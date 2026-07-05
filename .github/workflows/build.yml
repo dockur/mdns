@@ -1,8 +1,6 @@
 name: Build
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 0 * * *'
 
 concurrency:
   group: build
@@ -22,74 +20,37 @@ jobs:
       contents: read
     steps:
       -
-        name: Get remote package data
-        run: |
-          set -e -o pipefail
-          latest_tag=$(curl -sSf https://dl-cdn.alpinelinux.org/edge/community/aarch64/APKINDEX.tar.gz |
-            tar -xzO APKINDEX |
-            tr '\n' '\36' |
-            sed -E 's/\o36{2,}/\n/g' |
-            sed -nE '/(^|\o36)P:stunnel($|\o36)/ s/(^|.+\o36)V:([^\o36]+)($|\o36.+)/\2/ p')
-          echo "Found tag: \"${latest_tag}\"" 
-          latest_version="${latest_tag%-*}"
-          major="${latest_version%%.*}"
-          minor="${latest_version#*.}"
-          minor="${minor%%.*}"
-          echo "latest_tag=$latest_tag" >> $GITHUB_ENV
-          echo "latest_version=$latest_version" >> $GITHUB_ENV
-          echo "latest_minor=$major.$minor" >> $GITHUB_ENV
-          echo "latest_major=$major" >> $GITHUB_ENV
-      - 
-        name: Check if the tag exists locally
-        uses: action-pack/tag-exists@v1
-        id: checkTag
-        with: 
-          tag: 'v${{ env.latest_tag }}'         
-      -
-        name: Finish when found
-        run: |
-          #!/bin/bash
-          val="${{ steps.checkTag.outputs.exists }}"
-          echo "exists=${val}" >> $GITHUB_ENV
-      -
         name: Checkout
-        if: env.exists == 'false'
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
       -
         name: Docker metadata
         id: meta
-        if: env.exists == 'false'
         uses: docker/metadata-action@v6
         with:
           context: git
           images: |
-            ${{ secrets.DOCKERHUB_REPO }}
             ghcr.io/${{ github.repository }}
+            ${{ secrets.DOCKERHUB_REPO }}
           tags: |
             type=raw,value=latest,priority=100
-            type=raw,value=${{ env.latest_major }},priority=250
-            type=raw,value=${{ env.latest_minor }},priority=350
-            type=raw,value=${{ env.latest_version }},priority=450
+            type=raw,value=${{ vars.MAJOR }}.${{ vars.MINOR }}
           labels: |
             org.opencontainers.image.title=${{ vars.NAME }}
         env:
           DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
-      - 
+      -
         name: Set up Docker Buildx
-        if: env.exists == 'false'
         uses: docker/setup-buildx-action@v4
       -
         name: Login into Docker Hub
-        if: env.exists == 'false'
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
         name: Login to GitHub Container Registry
-        if: env.exists == 'false'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -97,36 +58,38 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       -
         name: Build Docker image
-        if: env.exists == 'false'
         uses: docker/build-push-action@v7
         with:
           context: .
           push: true
           provenance: false
-          platforms: linux/amd64,linux/arm64,linux/arm
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
           build-args: |
-            VERSION_ARG=${{ env.latest_version }}
+            VERSION_ARG=${{ steps.meta.outputs.version }}
       -
         name: Create a release
-        if: env.exists == 'false'
         uses: action-pack/github-release@v2
         with:
-          tag: "v${{ env.latest_tag }}"
-          title: "v${{ env.latest_version }}"
+          tag: "v${{ steps.meta.outputs.version }}"
+          title: "v${{ steps.meta.outputs.version }}"
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+      -
+        name: Increment version variable
+        uses: action-pack/bump@v2
+        with:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
       -
         name: Send mail
-        if: env.exists == 'false'
         uses: action-pack/send-mail@v1
         with:
           to: ${{secrets.MAILTO}}
           from: Github Actions <${{secrets.MAILTO}}>
           connection_url: ${{secrets.MAIL_CONNECTION}}
-          subject: Build of ${{ github.event.repository.name }} v${{ env.latest_tag }} completed
+          subject: Build of ${{ github.event.repository.name }} v${{ steps.meta.outputs.version }} completed
           body: |
-              The build job of ${{ github.event.repository.name }} v${{ env.latest_tag }} was completed successfully! 
-              
+              The build job of ${{ github.event.repository.name }} v${{ steps.meta.outputs.version }} was completed successfully!
+
               See https://github.com/${{ github.repository }}/actions for more information.
