@@ -46,31 +46,37 @@ for iface in "${IFACE_ARRAY[@]}"; do
 done
 
 has_ipv6() {
+
+  local count=0
+
   [ -e /proc/net/if_inet6 ] || return 1
   [ -s /proc/net/if_inet6 ] || return 1
 
   for iface in "${IFACE_ARRAY[@]}"; do
-    [ -d "/sys/class/net/$iface" ] || continue
 
     if [ -r "/proc/sys/net/ipv6/conf/$iface/disable_ipv6" ]; then
       [ "$(cat "/proc/sys/net/ipv6/conf/$iface/disable_ipv6")" = "0" ] || continue
     fi
 
     if grep -qw "$iface" /proc/net/if_inet6; then
-      return 0
+      count=$((count + 1))
     fi
+
+    [ "$count" -ge 2 ] && return 0
+
   done
 
   return 1
 }
 
-IP_VERSION=()
+IP_VERSION=""
 
 if ! has_ipv6; then
-  IP_VERSION=(-4)
+  IP_VERSION="-4"
 fi
 
 echo "Interfaces selected: ${IFACE_ARRAY[*]}"
 echo
 
-exec mdns-reflector -fnl "$LOG_LEVEL" "${IP_VERSION[@]}" -- "${IFACE_ARRAY[@]}"
+# shellcheck disable=SC2086
+exec mdns-reflector -fnl "$LOG_LEVEL" $IP_VERSION -- "${IFACE_ARRAY[@]}"
