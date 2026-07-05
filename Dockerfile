@@ -70,6 +70,4 @@ EOF
 ENV INTERFACES=""
 ENV LOG_LEVEL="warning"
 
-EXPOSE 5353/udp
-
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
