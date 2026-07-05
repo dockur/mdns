@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 : "${INTERFACES:=""}"
-: "${LOG_LEVEL:="info"}"
+: "${LOG_LEVEL:="warning"}"
 
 if [ "$#" -gt 0 ]; then
   exec "$@"
