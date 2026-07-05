@@ -1,37 +1,43 @@
 # syntax=docker/dockerfile:1
 
-FROM alpine:3.14 AS builder
+FROM alpine:latest AS builder
 
 WORKDIR /build
 
 RUN <<EOF
   set -eu
 
-  apk update
-  apk upgrade
-  apk --no-cache add \
+  apk add --no-cache \
+    ca-certificates \
+    git \
     musl-dev \
     gcc \
     cmake \
     make \
     libcap
 
-  cmake -DCMAKE_BUILD_TYPE=release ..
-  make VERBOSE=1 \
-  make install DESTDIR=install
-  setcap cap_net_raw+ep build/install/usr/local/bin/mdns-reflector
+  git clone --depth=1 --branch main https://github.com/vfreex/mdns-reflector.git src
 
-  rm -rf /tmp/* /var/cache/apk/*
+  cmake \
+    -S src \
+    -B build \
+    -DCMAKE_BUILD_TYPE=release \
+    -DCMAKE_INSTALL_PREFIX=/usr/local
+
+  cmake --build build --verbose
+
+  DESTDIR=/install cmake --install build
+
+  setcap cap_net_raw+ep /install/usr/local/bin/mdns-reflector
 EOF
 
-FROM alpine:3.14
+FROM alpine:latest
 
-COPY --chmod=755 entrypoint.sh /usr/local/bin/
-COPY --chmod=755 --from=builder /build/install/ /usr/local/bin/
+COPY --from=builder /install/ /
+COPY --chmod=755 entrypoint.sh /usr/local/bin/entrypoint.sh
 
-CMD ["/usr/local/bin/entrypoint.sh"]
-
-ENV INTERFACE1=""
-ENV INTERFACE2=""
+ENV INTERFACES=""
 
 EXPOSE 5353/udp
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
