@@ -7,6 +7,9 @@ WORKDIR /build
 RUN <<EOF
   set -eu
 
+  apk update
+  apk upgrade
+
   apk add --no-cache \
     ca-certificates \
     git \
@@ -36,12 +39,19 @@ FROM alpine:latest
 RUN <<EOF
   set -eu
 
+  apk update
+  apk upgrade
+
   apk add --no-cache \
     bash \
     libcap \
     iproute2
 
   rm -rf /tmp/* /var/cache/apk/*
+
+  # Set version number
+  echo "$VERSION_ARG" > /etc/version
+
 EOF
 
 COPY --from=builder /install/ /
