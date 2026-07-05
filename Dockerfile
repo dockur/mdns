@@ -33,6 +33,17 @@ EOF
 
 FROM alpine:latest
 
+RUN <<EOF
+  set -eu
+
+  apk add --no-cache \
+    bash \
+    libcap \
+    iproute2
+
+  rm -rf /tmp/* /var/cache/apk/*
+EOF
+
 COPY --from=builder /install/ /
 COPY --chmod=755 entrypoint.sh /usr/local/bin/entrypoint.sh
 
