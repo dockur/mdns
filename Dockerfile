@@ -23,7 +23,7 @@ RUN <<EOF
   cmake \
     -S src \
     -B build \
-    -DCMAKE_BUILD_TYPE=release \
+    -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr/local
 
   cmake --build build --verbose
@@ -43,7 +43,6 @@ RUN <<EOF
 
   apk add --no-cache \
     bash \
-    libcap \
     iproute2
 
   rm -rf /tmp/* /var/cache/apk/*
@@ -65,10 +64,11 @@ RUN <<EOF
 
   # Set version number
   echo "$VERSION_ARG" > /etc/version
-  
+
 EOF
 
 ENV INTERFACES=""
+ENV LOG_LEVEL="warning"
 
 EXPOSE 5353/udp
 
