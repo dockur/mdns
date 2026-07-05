@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 
-FROM alpine:edge
+FROM alpine:3.14 AS builder
+
+WORKDIR /build
 
 RUN <<EOF
   set -eu
@@ -8,26 +10,28 @@ RUN <<EOF
   apk update
   apk upgrade
   apk --no-cache add \
-    tini \
-    bash \
-    openssl \
-    stunnel
+    musl-dev \
+    gcc \
+    cmake \
+    make \
+    libcap
 
-  # Remove default stunnel config
-  rm -rf /etc/stunnel/stunnel.conf
+  cmake -DCMAKE_BUILD_TYPE=release ..
+  make VERBOSE=1 \
+  make install DESTDIR=install
+  setcap cap_net_raw+ep build/install/usr/local/bin/mdns-reflector
 
   rm -rf /tmp/* /var/cache/apk/*
 EOF
 
-COPY --chmod=755 stunnel.sh /usr/bin/stunnel.sh
-RUN ln -sf /dev/stdout /var/log/stunnel.log
+FROM alpine:3.14
 
-ENV LISTEN_PORT="853"
-ENV CONNECT_PORT="53"
-ENV CONNECT_HOST="1.1.1.1"
+COPY --chmod=755 entrypoint.sh /usr/local/bin/
+COPY --chmod=755 --from=builder /build/install/ /usr/local/bin/
 
-VOLUME [ "/etc/stunnel" ]
+CMD ["/usr/local/bin/entrypoint.sh"]
 
-HEALTHCHECK --interval=10s --timeout=5s --start-period=5s CMD /usr/local/bin/healthcheck
+ENV INTERFACE1=""
+ENV INTERFACE2=""
 
-ENTRYPOINT ["/sbin/tini", "--", "/usr/bin/stunnel.sh"]
+EXPOSE 5353/udp
