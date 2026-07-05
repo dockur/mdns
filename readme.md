@@ -12,92 +12,67 @@
 
 </div></h1>
 
-Docker container of [mDNS Reflector](https://github.com/vfreex/mdns-reflector), a lightweight and performant multicast DNS reflector with a modern design.
+Docker container of [mDNS Reflector](https://github.com/vfreex/mdns-reflector), a lightweight and performant multicast DNS reflector.
 
-It reflects mDNS queries and responses among multiple LANs, which allows you to run untrusted IoT devices in a separate LAN but those devices can still be discovered in other LANs.
+It reflects mDNS queries and responses between multiple network interfaces, allowing devices in separate LANs to discover each other without placing them in the same broadcast domain.
+
+This is useful when running IoT devices in a separate network while still allowing discovery from your main LAN.
 
 ## Features ✨
 
-- Repeats all mDNS traffic
+- Reflects mDNS traffic between multiple interfaces
 - Supports both IPv4 and IPv6
-- Supports zone based reflection
+- Lightweight Alpine-based image
 
-## Usage  🐳
+## Usage 🐳
+
+> [!IMPORTANT]
+> This container requires host networking because the reflector needs access to the real network interfaces and multicast traffic.
 
 ##### Docker Compose:
 
 ```yaml
 services:
   mdns:
-    hostname: mdns
     image: dockurr/mdns
     container_name: mdns
-    environment:
-      INTERFACE1: "eth0"
-      INTERFACE2: "vlan"
     network_mode: host
+    environment:
+      INTERFACES: "eth0 vlan20"
     restart: always
 ```
 
 ##### Docker CLI:
 
 ```bash
-docker run -it --rm --name stunnel -p 853:853 -e "LISTEN_PORT=853" -e "CONNECT_PORT=53" -e "CONNECT_HOST=1.1.1.1" -v "${PWD:-.}/privkey.pem:/private.pem" -v "${PWD:-.}/certificate.pem:/cert.pem" docker.io/dockurr/stunnel
+docker run -it --rm --name mdns -e "INTERFACES=eth0 vlan20" --network host docker.io/dockurr/mdns
 ```
 
 ## Configuration ⚙️
 
 ### How do I select the interfaces?
 
-Stunnel can operate in two modes. The __server mode__ works as a transparent proxy in front of a server, so that clients that connect negotiate an TLS connection while the traffic forwarded to the destination server will be unencrypted.
-
-The __client mode__ does the opposite thing. Clients connecting to stunnel running in client mode can establish a plain text connection and stunnel will create an encrypted TLS tunnel to the destination server.
-
-By default it will run in server mode, but to switch modes you can set the `CLIENT` variable like this:
+Set the `INTERFACES` environment variable to a space-separated list of interfaces that should participate in mDNS reflection.
 
 ```yaml
 environment:
-  CLIENT: "yes"
+  INTERFACES: "eth0 vlan20"
 ```
 
-### How do I select the certificate?
+At least two interfaces are required.
 
-When running in server mode, a certificate is needed. By default, a self-signed certificate will be generated, but you can supply your own `.pem` certificates by adding:
+### How do I find my interface names?
 
-```yaml
-volumes:
-  - ./privkey.pem:/private.pem
-  - ./certificate.pem:/cert.pem
+On the host, run:
+
+```bash
+ip link
 ```
 
-Instead of `.pem` files you can also use `.crt`/`.key` files:
-
-```yaml
-volumes:
-  - ./privkey.key:/private.key
-  - ./certificate.crt:/cert.crt
-```
-
-### How do I modify the permissions?
-
-You can set `UID` and `GID` environment variables to change the user and group ID.
-
-```yaml
-environment:
-  UID: "1002"
-  GID: "1005"
-```
-
-### How do I modify other settings?
-
-If you need more advanced features, you can completely override the default configuration by binding your custom config to the container like this:
-
-```yaml
-volumes:
-  - ./custom.conf:/stunnel.conf
-```
+Common examples are `eth0`, `br0`, `vlan20`, `eno1`, or bridge/VLAN interfaces created by your router, firewall, or virtualization platform.
 
 ## Stars 🌟
+
 [![Stargazers](https://raw.githubusercontent.com/star-stats/stars/refs/heads/data/charts/dockur-mdns.svg)](https://github.com/dockur/mdns/stargazers)
 
 [build_url]: https://github.com/dockur/mdns
