@@ -26,9 +26,6 @@ This is useful when running IoT devices in a separate network while still allowi
 
 ## Usage 🐳
 
-> [!IMPORTANT]
-> This container requires host networking because the reflector needs access to the real network interfaces and multicast traffic.
-
 ##### Docker Compose:
 
 ```yaml
@@ -47,6 +44,9 @@ services:
 ```bash
 docker run -it --rm --name mdns -e "INTERFACES=eth0 vlan20" --network host docker.io/dockurr/mdns
 ```
+
+> [!IMPORTANT]
+> This container requires host networking because the reflector needs access to the real network interfaces and multicast traffic.
 
 ## Configuration ⚙️
 
