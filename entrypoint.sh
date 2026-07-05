@@ -62,39 +62,8 @@ for iface in "${INTERFACE_LIST[@]}"; do
 
 done
 
-has_ipv6() {
-
-  local count=0
-
-  [ -e /proc/net/if_inet6 ] || return 1
-  [ -s /proc/net/if_inet6 ] || return 1
-
-  for iface in "${INTERFACE_LIST[@]}"; do
-
-    if [ -r "/proc/sys/net/ipv6/conf/$iface/disable_ipv6" ]; then
-      [ "$(<"/proc/sys/net/ipv6/conf/$iface/disable_ipv6")" = "0" ] || continue
-    fi
-
-    if awk -v iface="$iface" '$6 == iface { found = 1 } END { exit !found }' /proc/net/if_inet6; then
-      count=$((count + 1))
-    fi
-
-    [ "$count" -ge 2 ] && return 0
-
-  done
-
-  return 1
-}
-
-IP_VERSION=""
-
-if ! has_ipv6; then
-  IP_VERSION="-4"
-  echo "Warning: IPv6 support is disabled because fewer than two selected interfaces have IPv6 enabled." >&2
-fi
-
 echo "Interfaces selected: ${INTERFACE_LIST[*]}"
 echo
 
 # shellcheck disable=SC2086
-exec mdns-reflector -fnl "$LOG_LEVEL" $IP_VERSION -- "${INTERFACE_LIST[@]}"
+exec mdns-reflector -fnl "$LOG_LEVEL" -- "${INTERFACE_LIST[@]}"
