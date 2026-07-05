@@ -17,16 +17,16 @@ if [ -z "$INTERFACES" ]; then
   exit 1
 fi
 
-read -r -a IFACE_ARRAY <<< "$INTERFACES"
+read -r -a INTERFACE_LIST <<< "$INTERFACES"
 
-if [ "${#IFACE_ARRAY[@]}" -lt 2 ]; then
+if [ "${#INTERFACE_LIST[@]}" -lt 2 ]; then
   echo "Error: at least two interfaces are required." >&2
   exit 1
 fi
 
 declare -A seen=()
 
-for iface in "${IFACE_ARRAY[@]}"; do
+for iface in "${INTERFACE_LIST[@]}"; do
 
   if [ -n "${seen[$iface]:-}" ]; then
     echo "Error: duplicate interface '$iface'." >&2
@@ -69,10 +69,10 @@ has_ipv6() {
   [ -e /proc/net/if_inet6 ] || return 1
   [ -s /proc/net/if_inet6 ] || return 1
 
-  for iface in "${IFACE_ARRAY[@]}"; do
+  for iface in "${INTERFACE_LIST[@]}"; do
 
     if [ -r "/proc/sys/net/ipv6/conf/$iface/disable_ipv6" ]; then
-      [ "$(cat "/proc/sys/net/ipv6/conf/$iface/disable_ipv6")" = "0" ] || continue
+      [ "$(<"/proc/sys/net/ipv6/conf/$iface/disable_ipv6")" = "0" ] || continue
     fi
 
     if awk -v iface="$iface" '$6 == iface { found = 1 } END { exit !found }' /proc/net/if_inet6; then
@@ -90,10 +90,11 @@ IP_VERSION=""
 
 if ! has_ipv6; then
   IP_VERSION="-4"
+  echo "Warning: IPv6 support is disabled because fewer than two selected interfaces have IPv6 enabled." >&2
 fi
 
-echo "Interfaces selected: ${IFACE_ARRAY[*]}"
+echo "Interfaces selected: ${INTERFACE_LIST[*]}"
 echo
 
 # shellcheck disable=SC2086
-exec mdns-reflector -fnl "$LOG_LEVEL" $IP_VERSION -- "${IFACE_ARRAY[@]}"
+exec mdns-reflector -fnl "$LOG_LEVEL" $IP_VERSION -- "${INTERFACE_LIST[@]}"
