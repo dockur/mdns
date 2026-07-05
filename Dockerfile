@@ -16,8 +16,7 @@ RUN <<EOF
     musl-dev \
     gcc \
     cmake \
-    make \
-    libcap
+    make
 
   git clone --depth=1 --branch main https://github.com/vfreex/mdns-reflector.git src
 
@@ -30,11 +29,11 @@ RUN <<EOF
   cmake --build build --verbose
 
   DESTDIR=/install cmake --install build
-
-  setcap cap_net_raw+ep /install/usr/local/bin/mdns-reflector
 EOF
 
 FROM alpine:latest
+
+ARG VERSION_ARG="0.0"
 
 RUN <<EOF
   set -eu
@@ -49,13 +48,25 @@ RUN <<EOF
 
   rm -rf /tmp/* /var/cache/apk/*
 
-  # Set version number
-  echo "$VERSION_ARG" > /etc/version
-
 EOF
 
 COPY --from=builder /install/ /
 COPY --chmod=755 entrypoint.sh /usr/local/bin/entrypoint.sh
+
+RUN <<EOF
+  set -eu
+
+  apk add --no-cache libcap
+
+  # Grant raw socket capability needed for mDNS traffic
+  setcap cap_net_raw+ep /usr/local/bin/mdns-reflector
+
+  apk del libcap
+
+  # Set version number
+  echo "$VERSION_ARG" > /etc/version
+  
+EOF
 
 ENV INTERFACES=""
 
