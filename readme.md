@@ -1,6 +1,6 @@
 <h1 align="center">mDNS Reflector<br />
 <div align="center">
-<a href="https://github.com/dockur/mdns"><img src="https://raw.githubusercontent.com/dockur/mdns/master/.github/logo.png" title="Logo" style="max-width:100%;" width="128" /></a>
+<a href="https://github.com/dockur/mdns"><img src="https://raw.githubusercontent.com/dockur/mdns/master/.github/logo.png" title="Logo" style="max-width:100%;" width="96" /></a>
 </div>
 <div align="center">
 
