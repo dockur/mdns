@@ -1,15 +1,8 @@
 services:
-  stunnel:
-    hostname: stunnel
-    image: dockurr/stunnel
-    container_name: stunnel
+  mdns:
+    image: dockurr/mdns
+    container_name: mdns
+    network_mode: host
     environment:
-      LISTEN_PORT: "853"
-      CONNECT_PORT: "53"
-      CONNECT_HOST: "1.1.1.1"
-    volumes:
-      - ./privkey.pem:/private.pem
-      - ./certificate.pem:/cert.pem
-    ports:
-      - 853:853
+      INTERFACES: "eth0 vlan20"
     restart: always
