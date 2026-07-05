@@ -35,12 +35,29 @@ for iface in "${IFACE_ARRAY[@]}"; do
 
   seen[$iface]=1
 
+  if [ "$iface" = "lo" ]; then
+    echo "Error: loopback interface 'lo' cannot be used for reflection." >&2
+    exit 1
+  fi
+
   if [ ! -d "/sys/class/net/$iface" ]; then
     echo "Error: interface '$iface' does not exist." >&2
     echo >&2
     echo "Available interfaces:" >&2
     ls -1 /sys/class/net >&2
     exit 1
+  fi
+
+  if [ -r "/sys/class/net/$iface/flags" ]; then
+    flags=$(<"/sys/class/net/$iface/flags")
+
+    if (( (flags & 0x1000) == 0 )); then
+      echo "Warning: interface '$iface' does not support multicast." >&2
+    fi
+  fi
+
+  if [ -r "/sys/class/net/$iface/operstate" ] && [ "$(<"/sys/class/net/$iface/operstate")" = "down" ]; then
+    echo "Warning: interface '$iface' appears to be down." >&2
   fi
 
 done
