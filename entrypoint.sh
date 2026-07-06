@@ -25,6 +25,8 @@ normalizeInterfaces() {
     echo "Error: at least two interfaces are required." >&2
     exit 1
   fi
+
+  return 0
 }
 
 checkInterfaceExists() {
@@ -38,6 +40,8 @@ checkInterfaceExists() {
     ls -1 /sys/class/net >&2
     exit 1
   fi
+
+  return 0
 }
 
 checkInterfaceMulticast() {
@@ -52,6 +56,8 @@ checkInterfaceMulticast() {
       echo "Warning: interface '$iface' does not support multicast." >&2
     fi
   fi
+
+  return 0
 }
 
 checkInterfaceState() {
@@ -61,6 +67,8 @@ checkInterfaceState() {
   if [ -r "/sys/class/net/$iface/operstate" ] && [ "$(<"/sys/class/net/$iface/operstate")" = "down" ]; then
     echo "Warning: interface '$iface' appears to be down." >&2
   fi
+
+  return 0
 }
 
 validateInterfaces() {
@@ -87,6 +95,8 @@ validateInterfaces() {
     checkInterfaceState "$iface"
 
   done
+
+  return 0
 }
 
 normalizeInterfaces
