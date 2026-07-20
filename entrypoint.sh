@@ -105,5 +105,4 @@ validateInterfaces
 echo "Interfaces selected: ${INTERFACE_LIST[*]}"
 echo
 
-# shellcheck disable=SC2086
 exec mdns-reflector -fnl "$LOG_LEVEL" -- "${INTERFACE_LIST[@]}"
