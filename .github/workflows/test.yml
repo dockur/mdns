@@ -5,11 +5,13 @@ on:
     paths:
       - '**/*.sh'
       - 'Dockerfile'
+      - '.github/workflows/check.yml'
 
   pull_request:
     paths:
       - '**/*.sh'
       - 'Dockerfile'
+      - '.github/workflows/check.yml'
 
 name: "Test"
 permissions: {}
